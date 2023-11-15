@@ -2,7 +2,7 @@
 """
 Created on Tue May 21 14:18:32 2019
 Python wrapper for Thorlabs SpectralRadar SDK
-@author: sstucker
+@author: ajay
 Version 0.0.3
 """
 import ctypes as C
@@ -10,10 +10,13 @@ from enum import IntEnum
 import numpy as np
 from numpy.ctypeslib import ndpointer
 
+
+
+
 #Imports SpectralRadar libraries. Thorlabs software must be installed on machine
 try:
 
-    SpectralRadar = C.CDLL('SpectralRadar')
+    SpectralRadar = C.CDLL('C:\\Program Files\\Thorlabs\\SpectralRadar\\DLL\\SpectralRadar.dll')
 
     # Wrapper typedefs ------------------------------------------------------------
 
@@ -139,14 +142,45 @@ try:
         Processing_OnlyWindowing = 13
         Processing_RemoveFixedPattern = 14
 
-    class ProbeParameterInt(CEnum):
 
+    class ProbeParameterInt(IntEnum):
         Probe_ApodizationCycles = 0
         Probe_Oversampling = 1
-        Probe_WhiteBalanceAutomatic = 2
-        Probe_Oversampling_SlowAxis = 3
-        Probe_SpeckleReduction = 4
-        Probe_MaxScanRangeShape = 5
+        Probe_Oversampling_SlowAxis = 2
+        Probe_SpeckleReduction = 3
+
+
+    class ProcessingParameterInt(CEnum):
+        Processing_SpectrumAveraging = 0
+        Processing_AScanAveraging = 1
+        Processing_BScanAveraging = 2
+        Processing_ZeroPadding = 3
+        Processing_NumberOfThreads = 4
+        Processing_FourierAveraging = 5
+
+    class ScanPatternAcquisitionOrder(CEnum):
+        ScanPattern_AcqOrderFrameByFrame = 0
+        ScanPattern_AcqOrderAll = 1
+
+    class ScanPatternApodizationType(CEnum):
+        ScanPattern_ApoOneForAll = 0
+        ScanPattern_ApoEachBScan = 1
+
+    class AcquisitionType(CEnum):
+        Acquisition_AsyncContinuous = 0
+        Acquisition_AsyncFinite = 1
+        Acquisition_Sync = 2
+
+
+    class RawDataPropertyInt(IntEnum):
+        RawData_Size1 = 0
+        RawData_Size2 = 1
+        RawData_Size3 = 2
+        RawData_NumberOfElements = 3
+        RawData_SizeInBytes = 4
+        RawData_BytesPerElement = 5
+        RawData_LostFrames = 6
+
 
     class DataPropertyInt(CEnum):
 
@@ -247,6 +281,13 @@ try:
 
     SpectralRadar.createProcessingForDevice.restype = ProcessingHandle
     SpectralRadar.createProcessingForDevice.argtypes = [OCTDeviceHandle]
+
+    SpectralRadar.setDevicePreset.argtypes = [OCTDeviceHandle, C.c_int, ProbeHandle, ProcessingHandle, C.c_int]
+
+    def setDevicePreset(Dev, Category, Probe, Proc, Preset):
+        return SpectralRadar.setDevicePreset(Dev, Category, Probe, Proc, Preset)
+
+
     def createProcessingForDevice(Dev):
         return SpectralRadar.createProcessingForDevice(Dev)
 
@@ -255,6 +296,7 @@ try:
     #     return SpectralRadar.setProcessingOutput(Proc,Spectrum)
 
     SpectralRadar.setComplexDataOutput.argtypes = [ProcessingHandle,ComplexDataHandle]
+
     def setComplexDataOutput(Proc,Complex):
         return SpectralRadar.setComplexDataOutput(Proc,Complex)
 
@@ -366,9 +408,9 @@ try:
     def closeDevice(Dev):
         return SpectralRadar.closeDevice(Dev)
 
-    SpectralRadar.closeProcessing.argtypes = [ProcessingHandle]
-    def closeProcessing(Proc):
-        return SpectralRadar.closeProcessing(Proc)
+    SpectralRadar.clearProcessing.argtypes = [ProcessingHandle]
+    def clearProcessing(Proc):
+        return SpectralRadar.clearProcessing(Proc)
 
     SpectralRadar.clearData.argtypes = [DataHandle]
     def clearData(Data):
@@ -390,17 +432,33 @@ try:
     def setProbeParameterInt(Probe,Selection,Value):
         return SpectralRadar.setProbeParameterInt(Probe,Selection,Value)
 
-    SpectralRadar.setCameraPreset.argtypes = [OCTDeviceHandle,ProbeHandle,ProcessingHandle,C.c_int]
-    def setCameraPreset(Dev,Probe,Proc,Preset):
-        return SpectralRadar.setCameraPreset(Dev,Probe,Proc,Preset)
+
+    SpectralRadar.setProcessingParameterInt.argtypes = [ProcessingHandle, ProcessingParameterInt, C.c_int]
+    def setProcessingParameterInt(Proc, Selection, Value):
+        SpectralRadar.setProcessingParameterInt(Proc, Selection, Value)
+
+
+    SpectralRadar.setProcessedDataOutput.argtypes = [ProcessingHandle, DataHandle]
+    SpectralRadar.setProcessedDataOutput.restype = None
+    def setProcessedDataOutput(Proc, Scan):
+        SpectralRadar.setProcessedDataOutput(Proc, Scan)
+
+    SpectralRadar.expectedAcquisitionTime_s.argtypes = [ScanPatternHandle, OCTDeviceHandle]
+    SpectralRadar.expectedAcquisitionTime_s.restype = C.c_double
+    def expectedAcquisitionTime_s(ScanPattern, Dev):
+        return SpectralRadar.expectedAcquisitionTime_s(ScanPattern, Dev)
+
+
+    SpectralRadar.determineSurface.argtypes = [DataHandle, DataHandle]
+    SpectralRadar.determineSurface.restype = None
+    def determineSurface(Volume, Surface):
+        SpectralRadar.determineSurface(Volume, Surface)
+
 
     SpectralRadar.setTriggerMode.argtypes = [OCTDeviceHandle,Device_TriggerType]
     def setTriggerMode(Dev,TriggerMode):
         return SpectralRadar.setTriggerMode(Dev,TriggerMode)
 
-    SpectralRadar.setTriggerTimeoutSec.argtypes = [OCTDeviceHandle,C.c_int]
-    def setTriggerTimeoutSec(Dev,Timeout):
-        return SpectralRadar.setTriggerTimeoutSec(Dev,Timeout)
 
     SpectralRadar.createMemoryBuffer.restype = BufferHandle
     def createMemoryBuffer():
@@ -422,25 +480,17 @@ try:
     def exportComplexData(ComplexData,Format,Path):
         return SpectralRadar.exportComplexData(ComplexData,Format,Path)
 
-    SpectralRadar.exportData1D.argtypes = [DataHandle,Data1DExportFormat,C.c_wchar_p]
-    def exportData1D(Data,Format,Path):
+    SpectralRadar.exportData.argtypes = [DataHandle,Data1DExportFormat,C.c_wchar_p]
+    def exportData(Data,Format,Path):
         return SpectralRadar.exportData1D(Data,Format,Path)
-
-    SpectralRadar.exportData2D.argtypes = [DataHandle,Data2DExportFormat,C.c_wchar_p]
-    def exportData2D(Data,Format,Path):
-        return SpectralRadar.exportData2D(Data,Format,Path)
-
-    SpectralRadar.exportData3D.argtypes = [DataHandle,Data3DExportFormat,C.c_wchar_p]
-    def exportData3D(Data,Format,Path):
-        return SpectralRadar.exportData3D(Data,Format,Path)
 
     SpectralRadar.clearScanPattern.argtypes = [ScanPatternHandle]
     def clearScanPattern(Pattern):
         return SpectralRadar.clearScanPattern(Pattern)
 
-    SpectralRadar.closeProcessing.argtypes = [ProcessingHandle]
-    def closeProcessing(Proc):
-        return SpectralRadar.closeProcessing(Proc)
+    SpectralRadar.clearProcessing.argtypes = [ProcessingHandle]
+    def clearProcessing(Proc):
+        return SpectralRadar.clearProcessing(Proc)
 
     SpectralRadar.closeDevice.argtypes = [OCTDeviceHandle]
     def closeDevice(Dev):

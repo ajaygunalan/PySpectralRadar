@@ -11,6 +11,7 @@ print('----------------------------------\n')
 
 input('\nPress ENTER to initiate device handle...')
 
+
 dev = initDevice()
 
 input('\nPress ENTER to set device parameters...')
@@ -25,7 +26,7 @@ print('----------------------------------\n')
 
 input('\nPress ENTER to initiate probe handle...')
 
-probe = initProbe(dev,'ProbeLKM10-LV')
+probe = initProbe(dev,'Probe_Standard_OCTG_LSM04.ini')
 
 input('\nPress ENTER to initiate processing handle...')
 

@@ -49,7 +49,7 @@ print('----------------------------------\n')
 
 ###input('\nPress ENTER to initiate probe handle...')
 
-probe = initProbe(dev,'ProbeLKM10-LV')
+probe = initProbe(dev,'Probe_Standard_OCTG_LSM04.ini')
 
 ###input('\nPress ENTER to initiate processing handle...')
 
